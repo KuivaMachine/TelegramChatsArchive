@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 
+/*
 @Database(
     entities = [Chat::class, Message::class],
     version = 1,
@@ -30,4 +31,4 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
     }
-}
+}*/

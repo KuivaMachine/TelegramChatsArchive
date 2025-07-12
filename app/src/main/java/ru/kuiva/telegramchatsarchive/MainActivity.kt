@@ -4,12 +4,14 @@ import android.content.Context
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,10 +20,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -34,22 +39,28 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import ru.kuiva.telegramchatsarchive.data.Message
 import ru.kuiva.telegramchatsarchive.service.parseTelegramHtml
-import ru.kuiva.telegramchatsarchive.ui.theme.MessageShape
 import ru.kuiva.telegramchatsarchive.ui.theme.MyMessageColor
 import ru.kuiva.telegramchatsarchive.ui.theme.OtherMessageColor
+import ru.kuiva.telegramchatsarchive.ui.theme.TelegramArchiveTheme
+import ru.kuiva.telegramchatsarchive.ui.theme.TextColor
 
 
 class MainActivity : ComponentActivity() {
+    val TAG = "KUIVA"
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-//            ChatScreen("1", parseTelegramHtml(File("data/messages.html")))
-            FilePickerScreen()
+            TelegramArchiveTheme{
+                FilePickerScreen()
+            }
         }
     }
 }
@@ -75,8 +86,7 @@ fun FilePickerScreen() {
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+            .fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -139,32 +149,36 @@ fun ChatScreen(
 
     val scrollState = rememberLazyListState()
 
-    Scaffold(
-        topBar = { Text(chatId) },
-    ) { padding ->
-        LazyColumn(
-            state = scrollState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            reverseLayout = false
-        ) {
-            items(
-                count = messages.size
-            ) { index ->
-                val message = messages[index]
-                MessageBubble(
-                    message = message,
-                    isMyMessage = message.isOutgoing,
-                    modifier = Modifier
-                        .fillMaxWidth()
 
-                )
+        Scaffold { padding ->
+
+            LazyColumn(
+                state = scrollState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                reverseLayout = false
+            ) {
+
+                items(
+                    count = messages.size
+                ) { index ->
+                    val message = messages[index]
+
+                    MessageBubble(
+                        message = message,
+                        isMyMessage = message.isOutgoing,
+                        modifier = Modifier
+                            .fillMaxWidth()
+
+                    )
+                }
             }
         }
-    }
+
+
 }
-// ChatsScreen.kt
+/*// ChatsScreen.kt
 @Composable
 fun ChatsScreen(
     viewModel: ChatsViewModel = hiltViewModel(),
@@ -180,8 +194,9 @@ fun ChatsScreen(
             )
         }
     }
-}
+}*/
 
+/*
 // ChatListItem.kt
 @Composable
 fun ChatListItem(
@@ -241,6 +256,28 @@ fun ChatListItem(
         }
     }
 }
+*/
+@Composable
+fun messageShape(isMyMessage: Boolean): RoundedCornerShape {
+    return if (isMyMessage) {
+        // Хвостик справа
+        RoundedCornerShape(
+            topStart = 17.dp,
+            topEnd = 2.dp,
+            bottomStart = 17.dp,
+            bottomEnd = 17.dp
+        )
+    } else {
+        // Хвостик слева
+        RoundedCornerShape(
+            topStart = 2.dp,
+            topEnd = 17.dp,
+            bottomStart = 17.dp,
+            bottomEnd = 17.dp
+        )
+    }
+}
+
 
 // MessageBubble.kt
 @Composable
@@ -251,60 +288,50 @@ fun MessageBubble(
 ) {
     val bubbleColor = if (isMyMessage) MyMessageColor else OtherMessageColor
     val alignment = if (isMyMessage) Alignment.End else Alignment.Start
-
+    val colorScheme = MaterialTheme.colorScheme
+    val textColor = if (isMyMessage) colorScheme.onPrimaryContainer else colorScheme.onSurface
     Column(
         modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .background(color = Color.Blue)
+            .fillMaxWidth(0.8f)
+            .wrapContentWidth(alignment) // Выравнивание по стороне
+            .padding(horizontal = 4.dp, vertical = 4.dp)
             .wrapContentWidth(alignment),
         horizontalAlignment = alignment
     ) {
-        // Отправитель и дата
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (!isMyMessage) {
-                Text(
-                    text = message.from,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.width(8.dp))
-            }
-            Text(
-                text = message.date,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline
-            )
-        }
 
         // Текст сообщения
         Surface(
-            shape = MessageShape,
+            shape = messageShape(isMyMessage),
             color = bubbleColor,
             shadowElevation = 1.dp
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
                 message.text?.let { text ->
                     Text(
+                        overflow = TextOverflow.Ellipsis,
                         text = text,
+                        color =  textColor,
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(bottom = /*if (message.attachments.isNotEmpty()) 8.dp else*/ 0.dp)
+                                modifier = Modifier.padding(bottom = 0.dp)
+                    )
+                }
+                message.voiceMessage?.let { voice ->
+                    Text(
+                        text = voice.path,
+                        color =  textColor,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(bottom = 0.dp)
                     )
                 }
 
-                /* // Вложения
-                 message.attachments.forEach { attachment ->
-                     when (attachment) {
-                         is Attachment.Image -> ImageAttachment(attachment)
-                         is Attachment.Video -> VideoAttachment(attachment)
-                         // Другие типы вложений...
-                     }
-                 }*/
+                Text(
+                    text = message.date.toString(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = textColor
+                )
             }
         }
 
-//        // Реакции
-//        if (message.reactions.isNotEmpty()) {
-//            ReactionsBar(message.reactions)
-//        }
     }
 }

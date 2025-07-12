@@ -4,16 +4,17 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import java.time.LocalDateTime
 
-@Entity(tableName = "chats")
+/*@Entity(tableName = "chats")*/
 data class Chat(
-    @PrimaryKey val chatId: String,
+     val chatId: String,
     val title: String,
     val lastMessageTime: String?,
     val avatarPath: String?
 )
 
-@Entity(tableName = "messages",
+/*@Entity(tableName = "messages",
     foreignKeys = [
         ForeignKey(
             entity = Chat::class,
@@ -22,13 +23,13 @@ data class Chat(
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("chatId")])
+    indices = [Index("chatId")])*/
 data class Message(
     // Основные поля
-    @PrimaryKey val id: String,
-    val chatId: String,
+    val id: String,
+
     val isOutgoing: Boolean,
-    val date: String,
+    val date: LocalDateTime,
     val from: String,
     val text: String?,
     val isService: Boolean = false,
@@ -43,7 +44,6 @@ data class Message(
 
     // Дополнительные данные
     val replyToMessageId: String? = null,
-    val forwardedFrom: String? = null,
     val reactions: List<Reaction>? = null,
     val edited: Boolean = false,
     val editedDate: String? = null

@@ -1,6 +1,7 @@
 package ru.kuiva.telegramchatsarchive.service
 
 
+import android.util.Log
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import ru.kuiva.telegramchatsarchive.data.AnimatedStickerAttachment
@@ -12,37 +13,27 @@ import ru.kuiva.telegramchatsarchive.data.StickerAttachment
 import ru.kuiva.telegramchatsarchive.data.VideoAttachment
 import ru.kuiva.telegramchatsarchive.data.VoiceAttachment
 import java.io.File
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 fun parseTelegramHtml(file: String): List<Message> {
     val doc = Jsoup.parse(file)
     val messages = mutableListOf<Message>()
-
+    val TAG = "KUIVA"
     doc.select("div.message").forEach { msg ->
         val isService = msg.hasClass("service")
         val id = msg.attr("id")
 
-        if (isService) {
-            // Парсим сервисные сообщения (даты)
-            messages.add(
-                Message(
-                    id = id,
-                    date = "",
-                    from = "",
-                    text = msg.select("div.body.details").text(),
-                    isService = true,
-                    isOutgoing = false
-                )
-            )
-        } else {
+        if (!isService) {
             // Парсим обычные сообщения
             val date = msg.select("div.date").attr("title").ifEmpty {
                 msg.select("div.date").text()
             }
-            val from = msg.select("div.from_name").text().ifEmpty { messages.getOrNull(messages.lastIndex)?.from?:" " }
+            val from = msg.select("div.from_name").text()
+                .ifEmpty { messages.getOrNull(messages.lastIndex)?.from ?: " " }
 
             // Парсим текст (может быть сложной структурой)
             val text = parseMessageText(msg)
-
             // Парсим вложения
             val photo = parsePhotoAttachment(msg)
             val video = parseVideoAttachment(msg)
@@ -60,34 +51,41 @@ fun parseTelegramHtml(file: String): List<Message> {
             val reactions = parseReactions(msg)
             val edited = msg.select("div.edited").isNotEmpty()
             val editedDate = if (edited) msg.select("div.edited").attr("title") else null
-
-            messages.add(
-                Message(
-                    id = id,
-                    isOutgoing = from=="Олег Заостровцев",
-                    date = date,
-                    from = from,
-                    text = text,
-                    isService = false,
-                    photo = photo,
-                    video = video,
-                    voiceMessage = voice,
-                    sticker = sticker,
-                    animatedSticker = animatedSticker,
-                    document = document,
-                    replyToMessageId = replyTo,
-                    reactions = reactions,
-                    edited = edited,
-                    editedDate = editedDate
-                )
+            val message = Message(
+                id = id,
+                isOutgoing = from == "Олежа Заостровцев",
+                date = parseDateTime(date),
+                from = from,
+                text = text,
+                isService = false,
+                photo = photo,
+                video = video,
+                voiceMessage = voice,
+                sticker = sticker,
+                animatedSticker = animatedSticker,
+                document = document,
+                replyToMessageId = replyTo,
+                reactions = reactions,
+                edited = edited,
+                editedDate = editedDate,
             )
+
+            messages.add(message)
         }
+
     }
+
 
     return messages
 }
 
 // Вспомогательные функции парсинга
+fun parseDateTime(dateString: String): LocalDateTime {
+    val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss 'UTC'XXX")
+    return LocalDateTime.parse(dateString, formatter)
+}
+
+
 private fun parseMessageText(msg: Element): String? {
     return when {
         msg.select("div.text").isNotEmpty() -> msg.select("div.text").text()
